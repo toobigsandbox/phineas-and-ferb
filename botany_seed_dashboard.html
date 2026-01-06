@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Seed: Discovery Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* FONTS & VARIABLES */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&family=Outfit:wght@300;400;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=Patrick+Hand&display=swap');
+
+        :root {
+            --bg-color: #f0fdf4; /* Emerald-50 tint for Seed/Growth */
+            --teal: #0d9488;
+            --emerald: #059669;
+            --amber: #d97706;
+            --slate: #334155;
+            --brown: #78350f;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(rgba(5, 150, 105, 0.1) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--slate);
+            transition: background-color 0.5s ease;
+        }
+
+        .serif { font-family: 'Lora', serif; }
+        .handwritten { font-family: 'Patrick Hand', cursive; }
+
+        /* --- CARD GRID SYSTEM --- */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .card-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .lab-card {
+            background: white;
+            border: 2px solid white;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .lab-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .lab-card.active {
+            grid-column: 1 / -1; /* Expand to full width */
+            border-color: var(--emerald);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            cursor: default;
+        }
+
+        .card-content {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .lab-card.active .card-content {
+            max-height: 2000px;
+            opacity: 1;
+            padding-top: 1.5rem;
+            margin-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* --- TRIAGE MODE STYLES --- */
+        body.triage-active {
+            background-color: #fff1f2;
+            background-image: none;
+        }
+        body.triage-active .explorer-only { display: none !important; }
+        body.triage-active .triage-banner { display: flex !important; }
+
+        /* --- SIM CHAMBER (The Traveler) --- */
+        .traveler-sim {
+            background: linear-gradient(135deg, #3f2c22 0%, #78350f 100%); /* Soil/Seed colors */
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animation: Parachute Seed */
+        .seed-parachute {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            font-size: 2rem;
+            animation: drift 8s linear infinite;
+            opacity: 0.8;
+        }
+        
+        @keyframes drift {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translate(100px, 400px) rotate(20deg); opacity: 0; }
+        }
+
+        /* Rotate Chevron */
+        .expand-icon { transition: transform 0.3s ease; }
+        .lab-card.active .expand-icon { transform: rotate(180deg); }
+
+        /* Icon Circle Style */
+        .icon-circle {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+    </style>
+</head>
+<body class="pb-24 transition-colors duration-500">
+
+    <!-- EXECUTIVE FUNCTION BAR -->
+    <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-leaf"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-800">The Seed</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Lesson 8 • The Traveler</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button onclick="toggleTriage()" id="triageBtn" class="group flex items-center gap-2 px-4 py-2 rounded-full border-2 border-transparent transition-all duration-300 bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span class="font-bold text-sm">Explorer Mode</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Triage Alert Banner -->
+        <div class="triage-banner hidden bg-rose-600 text-white py-2 px-4 justify-center items-center gap-2 text-sm font-bold animate-pulse">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            TRIAGE MODE ACTIVE: Just the essentials.
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-5xl mx-auto mt-24 px-4 space-y-12">
+
+        <!-- 1. THE SIM CHAMBER: THE TRAVELER (Explorer Only) -->
+        <section class="explorer-only traveler-sim p-8 md:p-12 text-white shadow-2xl relative">
+            <!-- Animated Seeds -->
+            <div class="seed-parachute text-white/50"><i class="fa-brands fa-envira"></i></div>
+            <div class="seed-parachute text-white/50" style="animation-delay: 2s; left: 20%;"><i class="fa-solid fa-wind"></i></div>
+            <div class="seed-parachute text-white/50" style="animation-delay: 4s; left: 80%;"><i class="fa-solid fa-feather"></i></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                <div class="flex-1">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur rounded-full text-xs font-bold uppercase tracking-widest mb-4 text-emerald-200 border border-white/10">
+                        <i class="fa-solid fa-suitcase"></i> The Narrative
+                    </div>
+                    <h2 class="text-5xl md:text-6xl font-black mb-4 leading-tight font-sans tracking-tighter">
+                        THE GREAT<br>
+                        <span class="text-amber-400">ESCAPE</span>
+                    </h2>
+                    <p class="text-lg font-serif italic text-emerald-100 leading-relaxed max-w-xl">
+                        "The mother plant cannot move. But she sends her child away with a backpack of food and a special map. 'Go, my child! If you stay here, you will starve in my shadow.'"
+                    </p>
+                </div>
+
+                <!-- Interactive "Visual" Cards -->
+                <div class="flex flex-col gap-3 w-full md:w-64">
+                    <!-- The Backpack Visual -->
+                    <div class="bg-white/10 backdrop-blur p-4 rounded-xl border border-white/20 hover:bg-white/20 transition-colors cursor-help group text-center">
+                        <div class="text-4xl mb-2 animate-bounce">🎒</div>
+                        <h4 class="font-bold text-sm">The Backpack</h4>
+                        <p class="text-xs text-emerald-200">Cotyledon (Food)</p>
+                        <div class="hidden group-hover:block absolute right-full mr-4 top-0 bg-white text-slate-800 p-3 rounded-xl w-48 text-xs shadow-xl z-20 text-left">
+                            "The baby plant (Embryo) carries a lunchbox (Cotyledon) to survive until it can make its own food."
+                        </div>
+                    </div>
+
+                    <!-- The Map Visual -->
+                    <div class="bg-white/10 backdrop-blur p-4 rounded-xl border border-white/20 hover:bg-white/20 transition-colors cursor-help text-center">
+                        <div class="text-4xl mb-2">🗺️</div>
+                        <h4 class="font-bold text-sm">The Method</h4>
+                        <p class="text-xs text-emerald-200">Dispersal (Travel)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. TRIAGE "CHEAT SHEET" (Triage Only) -->
+        <section class="triage-banner hidden flex-col gap-4">
+            <div class="bg-white rounded-2xl p-6 border-l-8 border-rose-500 shadow-sm">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Lesson Snapshot</h2>
+                <ul class="space-y-3 text-slate-600">
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Goal:</strong> Seed houses the baby plant (Embryo) + food (Cotyledon). Introduces Monocot vs. Dicot.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Key Story:</strong> "The Mother sending the child away" (Dispersal).</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Materials:</strong> Soaked Lima Beans (Big!), Corn, Hand Lens.</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="bg-slate-100 rounded-2xl p-6 border border-slate-200">
+                <h3 class="font-bold text-slate-500 text-xs uppercase tracking-widest mb-3">Shopping List</h3>
+                <div class="grid grid-cols-2 gap-2 text-sm text-slate-700">
+                    <label class="flex gap-2"><input type="checkbox"> Giant Lima Beans (Soak 24h)</label>
+                    <label class="flex gap-2"><input type="checkbox"> Corn Kernels (Soak 24h)</label>
+                    <label class="flex gap-2"><input type="checkbox"> Coconut (Floater demo)</label>
+                    <label class="flex gap-2"><input type="checkbox"> Maple Seeds (Wings)</label>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. THE DISCOVERY DECK (Explorer Only) -->
+        <section class="explorer-only">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-emerald-600"></i> The Discovery Deck
+                <span class="text-sm font-normal text-slate-400 ml-2">(Click to Expand)</span>
+            </h2>
+
+            <div class="card-container">
+
+                <!-- CARD A: ANATOMY LAB (The Backpack) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-box-open"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-amber-600 transition-colors">The Anatomy Lab</h3>
+                        <p class="text-sm text-slate-500">Dissecting the Lima Bean.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="grid grid-cols-2 gap-4 text-center">
+                                <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-amber-200 text-amber-600">🌮</div>
+                                    <h4 class="font-bold text-amber-800 mb-1">Cotyledon</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-amber-600">"The Lunchbox"</p>
+                                    <p class="text-xs text-slate-600 mt-2">Greek: "Cup-shaped hollow"</p>
+                                </div>
+                                <div class="bg-brown-50 p-4 rounded-xl border border-brown-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-brown-200 text-brown-600">🛡️</div>
+                                    <h4 class="font-bold text-brown-800 mb-1">Testa</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-brown-600">"The Shield"</p>
+                                    <p class="text-xs text-slate-600 mt-2">Latin: "Shell" (Protection)</p>
+                                </div>
+                                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col items-center col-span-2">
+                                    <div class="icon-circle bg-emerald-200 text-emerald-600">👶</div>
+                                    <h4 class="font-bold text-emerald-800 mb-1">Embryo</h4>
+                                    <div class="flex gap-4 mt-2 text-left w-full justify-center">
+                                        <div class="text-xs text-slate-600">
+                                            <strong>Radicle:</strong> Becomes Root (Latin: <em>Radicae</em>)
+                                        </div>
+                                        <div class="text-xs text-slate-600">
+                                            <strong>Plumule:</strong> Becomes Leaves (Latin: <em>Pluma</em>/Feather)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD B: THE TWO TRIBES (Monocot vs Dicot) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-diagram-project"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-emerald-600 transition-colors">The Two Tribes</h3>
+                        <p class="text-sm text-slate-500">Monocots vs. Dicots: The Great Divide.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="grid grid-cols-2 gap-6">
+                                <!-- Monocot -->
+                                <div class="space-y-2 border-r border-slate-100 pr-2">
+                                    <h4 class="font-bold text-slate-700 flex items-center gap-2">
+                                        <span class="bg-slate-200 text-slate-600 px-2 rounded text-xs">1</span> Monocot
+                                    </h4>
+                                    <p class="text-xs text-slate-500 italic">Example: Corn, Grass, Lily</p>
+                                    <ul class="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                                        <li><strong>1 Cotyledon</strong> (One part)</li>
+                                        <li>Parallel Veins</li>
+                                        <li>Flower parts in <strong>3s</strong></li>
+                                        <li>Roots: Fasciculate (Messy)</li>
+                                    </ul>
+                                </div>
+                                <!-- Dicot -->
+                                <div class="space-y-2 pl-2">
+                                    <h4 class="font-bold text-slate-700 flex items-center gap-2">
+                                        <span class="bg-slate-200 text-slate-600 px-2 rounded text-xs">2</span> Dicot
+                                    </h4>
+                                    <p class="text-xs text-slate-500 italic">Example: Bean, Rose, Oak</p>
+                                    <ul class="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                                        <li><strong>2 Cotyledons</strong> (Splits in two)</li>
+                                        <li>Reticulate (Net) Veins</li>
+                                        <li>Flower parts in <strong>4s or 5s</strong></li>
+                                        <li>Roots: Tap Root (Strong)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD C: TRAVEL AGENTS (Dispersal) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-sky-600 transition-colors">Travel Agents</h3>
+                        <p class="text-sm text-slate-500">How they leave home (Dispersal).</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-4 bg-sky-50 p-3 rounded-xl">
+                                    <div class="text-2xl">🪂</div>
+                                    <div>
+                                        <h4 class="font-bold text-sky-900 text-sm">Wind (Parachutes)</h4>
+                                        <p class="text-xs text-sky-700">Dandelion, Milkweed, Maple (Wings).</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 bg-blue-50 p-3 rounded-xl">
+                                    <div class="text-2xl">🥥</div>
+                                    <div>
+                                        <h4 class="font-bold text-blue-900 text-sm">Water (Boats)</h4>
+                                        <p class="text-xs text-blue-700">Coconut (floats across oceans!), Water Lily.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 bg-rose-50 p-3 rounded-xl">
+                                    <div class="text-2xl">🐕</div>
+                                    <div>
+                                        <h4 class="font-bold text-rose-900 text-sm">Hitchhikers (Velcro)</h4>
+                                        <p class="text-xs text-rose-700">Cocklebur, Burdock. Hooks onto fur/socks.</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 bg-purple-50 p-3 rounded-xl">
+                                    <div class="text-2xl">💥</div>
+                                    <div>
+                                        <h4 class="font-bold text-purple-900 text-sm">Explosion (Ballistics)</h4>
+                                        <p class="text-xs text-purple-700">Impatiens (Touch-me-not). Bursts open when ripe.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD D: GUIDE'S COMPASS (Why?) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">Guide's Compass</h3>
+                        <p class="text-sm text-slate-500">The Philosophy: Independence & Survival.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                                <h4 class="font-bold text-blue-800 text-xs uppercase tracking-widest mb-2">The Biological Truth</h4>
+                                <p class="text-slate-700 text-sm italic leading-relaxed">
+                                    "If the baby settled next to the parent, there might not be enough light or soil. He might not survive. He MUST move."
+                                </p>
+                            </div>
+                            <div class="text-sm text-slate-600">
+                                <strong>For the Child:</strong> This resonates with the 6-12 child's growing need for independence from the family. The seed is the ultimate adventurer, leaving home to find its own place in the sun.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. FOOTER: RABBIT HOLES -->
+        <section class="explorer-only mt-16 border-t border-slate-200 pt-8 pb-12">
+            <h3 class="text-center text-slate-400 font-bold uppercase tracking-widest text-xs mb-8">Rabbit Holes for the Curious</h3>
+            <div class="flex flex-wrap justify-center gap-6">
+                <div class="bg-amber-100 p-4 w-48 shadow-lg transform rotate-2 hover:rotate-0 transition-transform cursor-help">
+                    <h4 class="font-bold text-amber-800 text-xs uppercase mb-1">Oldest Seed?</h4>
+                    <p class="handwritten text-sm text-amber-900 leading-tight">A date palm seed from Judea sprouted after <strong>2,000 years</strong>! It was found in an ancient fortress.</p>
+                </div>
+                <div class="bg-emerald-100 p-4 w-48 shadow-lg transform -rotate-1 hover:rotate-0 transition-transform cursor-help">
+                    <h4 class="font-bold text-emerald-800 text-xs uppercase mb-1">Invention</h4>
+                    <p class="handwritten text-sm text-emerald-900 leading-tight"><strong>Velcro</strong> was invented after a man studied how Burdock seeds (hitchhikers) stuck to his dog's fur.</p>
+                </div>
+            </div>
+            
+             <!-- Live Parking Lot -->
+            <div class="mt-8 max-w-xl mx-auto">
+                <textarea class="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" rows="2" placeholder="Start typing your own rabbit holes here..."></textarea>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JS Logic -->
+    <script>
+        function toggleCard(card) {
+            if (card.classList.contains('active')) {
+                card.classList.remove('active');
+            } else {
+                card.classList.add('active');
+            }
+        }
+
+        function toggleTriage() {
+            const body = document.body;
+            const btn = document.getElementById('triageBtn');
+            const span = btn.querySelector('span');
+            const icon = btn.querySelector('i');
+
+            body.classList.toggle('triage-active');
+
+            if (body.classList.contains('triage-active')) {
+                btn.classList.remove('bg-slate-100', 'text-slate-600');
+                btn.classList.add('bg-rose-600', 'text-white', 'shadow-lg');
+                span.innerText = "Exit Triage";
+                icon.classList.remove('fa-heart-pulse');
+                icon.classList.add('fa-xmark');
+            } else {
+                btn.classList.add('bg-slate-100', 'text-slate-600');
+                btn.classList.remove('bg-rose-600', 'text-white', 'shadow-lg');
+                span.innerText = "Explorer Mode";
+                icon.classList.add('fa-heart-pulse');
+                icon.classList.remove('fa-xmark');
+            }
+        }
+    </script>
+</body>
+</html>
