@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Flower: Discovery Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* FONTS & VARIABLES */
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&family=Outfit:wght@300;400;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=Patrick+Hand&display=swap');
+
+        :root {
+            --bg-color: #f0fdfa; /* Teal-50 tint */
+            --teal: #0d9488;
+            --rose: #e11d48;
+            --amber: #d97706;
+            --slate: #334155;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(rgba(13, 148, 136, 0.1) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--slate);
+            transition: background-color 0.5s ease;
+        }
+
+        .serif { font-family: 'Lora', serif; }
+        .handwritten { font-family: 'Patrick Hand', cursive; }
+
+        /* --- CARD GRID SYSTEM (Matches Stem Dashboard) --- */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .card-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .lab-card {
+            background: white;
+            border: 2px solid white;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .lab-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .lab-card.active {
+            grid-column: 1 / -1; /* Expand to full width */
+            border-color: var(--teal);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            cursor: default;
+        }
+
+        .card-content {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all 0.5s ease-in-out;
+        }
+
+        .lab-card.active .card-content {
+            max-height: 2000px;
+            opacity: 1;
+            padding-top: 1.5rem;
+            margin-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* --- TRIAGE MODE STYLES --- */
+        body.triage-active {
+            background-color: #fff1f2; /* Rose background for alert */
+            background-image: none;
+        }
+        
+        body.triage-active .explorer-only {
+            display: none !important;
+        }
+        
+        body.triage-active .triage-banner {
+            display: flex !important;
+        }
+
+        /* --- SIM CHAMBER (The Flower Market) --- */
+        .market-sim {
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .scent-trail {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            animation: float 4s infinite ease-in-out;
+        }
+        
+        /* Neon Sign Effect */
+        .neon-sign {
+            text-shadow: 0 0 10px #f43f5e, 0 0 20px #f43f5e, 0 0 40px #f43f5e;
+            animation: flicker 3s infinite alternate;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-20px) scale(1.2); opacity: 0.8; }
+        }
+        
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.4; }
+        }
+
+        /* Rotate Chevron */
+        .expand-icon { transition: transform 0.3s ease; }
+        .lab-card.active .expand-icon { transform: rotate(180deg); }
+
+        /* Icon Circle Style */
+        .icon-circle {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+    </style>
+</head>
+<body class="pb-24 transition-colors duration-500">
+
+    <!-- EXECUTIVE FUNCTION BAR -->
+    <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div class="w-10 h-10 bg-rose-500 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-fan"></i> <!-- Flower Icon -->
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-800">The Flower</h1>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Lesson 6 • The Invitation</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Triage Toggle -->
+                <button onclick="toggleTriage()" id="triageBtn" class="group flex items-center gap-2 px-4 py-2 rounded-full border-2 border-transparent transition-all duration-300 bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                    <span class="font-bold text-sm">Explorer Mode</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Triage Alert Banner -->
+        <div class="triage-banner hidden bg-rose-600 text-white py-2 px-4 justify-center items-center gap-2 text-sm font-bold animate-pulse">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            TRIAGE MODE ACTIVE: Just the essentials. No fluff.
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="max-w-5xl mx-auto mt-24 px-4 space-y-12">
+
+        <!-- 1. THE SIM CHAMBER: THE FLOWER MARKET (Explorer Only) -->
+        <section class="explorer-only market-sim p-8 md:p-12 text-white shadow-2xl relative">
+            <!-- Animated Background Elements -->
+            <div class="scent-trail w-64 h-64 top-0 right-0 text-rose-300"></div>
+            <div class="scent-trail w-48 h-48 bottom-0 left-10 text-amber-300" style="animation-delay: 1s;"></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                <div class="flex-1">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur rounded-full text-xs font-bold uppercase tracking-widest mb-4 text-rose-200 border border-white/10">
+                        <i class="fa-solid fa-store"></i> The Narrative
+                    </div>
+                    <!-- Neon Sign Title -->
+                    <h2 class="text-5xl md:text-6xl font-black mb-4 leading-tight font-sans tracking-tighter">
+                        <span class="neon-sign text-white">OPEN</span><br>
+                        MARKET
+                    </h2>
+                    <p class="text-lg font-serif italic text-slate-200 leading-relaxed max-w-xl">
+                        "The plant is calling out. It is a voice that is both silent and loud. It says: 'Come here! I have something special for you.'"
+                    </p>
+                </div>
+
+                <!-- Interactive "Visual" Cards -->
+                <div class="flex flex-col gap-3 w-full md:w-64">
+                    <!-- Scent Visual -->
+                    <div class="bg-white/10 backdrop-blur p-4 rounded-xl border border-white/20 hover:bg-white/20 transition-colors cursor-help group text-center">
+                        <div class="text-4xl mb-2 animate-bounce">🍬</div>
+                        <h4 class="font-bold text-sm">The Bribe</h4>
+                        <p class="text-xs text-slate-300">Nectar (Juice)</p>
+                        <div class="hidden group-hover:block absolute right-full mr-4 top-0 bg-white text-slate-800 p-3 rounded-xl w-48 text-xs shadow-xl z-20 text-left">
+                            "You think the juice is the best part? No! It's the <strong>Golden Powder</strong> I stick to your back!"
+                        </div>
+                    </div>
+
+                    <!-- Color Visual -->
+                    <div class="bg-white/10 backdrop-blur p-4 rounded-xl border border-white/20 hover:bg-white/20 transition-colors cursor-help text-center">
+                        <div class="text-4xl mb-2">🎨</div>
+                        <h4 class="font-bold text-sm">The Sign</h4>
+                        <p class="text-xs text-slate-300">Color (Petals)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. TRIAGE "CHEAT SHEET" (Triage Only) -->
+        <section class="triage-banner hidden flex-col gap-4">
+            <div class="bg-white rounded-2xl p-6 border-l-8 border-rose-500 shadow-sm">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Lesson Snapshot</h2>
+                <ul class="space-y-3 text-slate-600">
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Goal:</strong> Flower's function is reproduction via attraction.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Key Story:</strong> "The Flower Market" (Tricking the insect).</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-check text-rose-500 mt-1"></i>
+                        <span><strong>Materials:</strong> Real Lily/Tulip, Black Paper, Chart O.</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Quick Prep List -->
+            <div class="bg-slate-100 rounded-2xl p-6 border border-slate-200">
+                <h3 class="font-bold text-slate-500 text-xs uppercase tracking-widest mb-3">Shopping List</h3>
+                <div class="grid grid-cols-2 gap-2 text-sm text-slate-700">
+                    <label class="flex gap-2"><input type="checkbox"> Alstroemeria (Best)</label>
+                    <label class="flex gap-2"><input type="checkbox"> Tulips</label>
+                    <label class="flex gap-2"><input type="checkbox"> Black Construction Paper</label>
+                    <label class="flex gap-2"><input type="checkbox"> Hand Lens</label>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. THE DISCOVERY DECK (Explorer Only) -->
+        <section class="explorer-only">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-teal-600"></i> The Discovery Deck
+                <span class="text-sm font-normal text-slate-400 ml-2">(Click to Expand)</span>
+            </h2>
+
+            <div class="card-container">
+
+                <!-- CARD A: ANATOMY LAB (Illustrated) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-microscope"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-teal-600 transition-colors">The Anatomy Lab</h3>
+                        <p class="text-sm text-slate-500">Dissection: Calyx, Corolla, Stamen, Pistil.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="grid grid-cols-2 gap-4 text-center">
+                                <!-- Corolla -->
+                                <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-rose-200 text-rose-600">👑</div>
+                                    <h4 class="font-bold text-rose-800 mb-1">Corolla</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-rose-400">"Small Garland"</p>
+                                </div>
+                                <!-- Calyx -->
+                                <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-green-200 text-green-600">🍵</div>
+                                    <h4 class="font-bold text-green-800 mb-1">Calyx</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-green-500">"Cup/Husk"</p>
+                                </div>
+                                <!-- Stamen -->
+                                <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-amber-200 text-amber-600">🧵</div>
+                                    <h4 class="font-bold text-amber-800 mb-1">Stamen</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-amber-500">"Thread"</p>
+                                </div>
+                                <!-- Pistil -->
+                                <div class="bg-purple-50 p-4 rounded-xl border border-purple-100 flex flex-col items-center">
+                                    <div class="icon-circle bg-purple-200 text-purple-600">🥣</div>
+                                    <h4 class="font-bold text-purple-800 mb-1">Pistil</h4>
+                                    <p class="text-[10px] uppercase tracking-wide text-purple-400">"Pestle"</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD B: SOCIAL NETWORK (Illustrated) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-users-viewfinder"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-pink-600 transition-colors">The Social Network</h3>
+                        <p class="text-sm text-slate-500">VIPs Only vs. Banned Guests.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <div class="space-y-4">
+                                <!-- BANNED -->
+                                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border-l-4 border-red-400">
+                                    <div class="text-3xl">🚫🐜</div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-700 text-sm">BANNED: The Ant</h4>
+                                        <p class="text-xs text-slate-500 italic">"No Hair = No Pollen"</p>
+                                    </div>
+                                </div>
+                                <!-- VIP -->
+                                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border-l-4 border-green-400">
+                                    <div class="text-3xl">✅🐦</div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-700 text-sm">VIP: Hummingbird</h4>
+                                        <p class="text-xs text-slate-500 italic">"Long Beak Required"</p>
+                                    </div>
+                                </div>
+                                <!-- NIGHT SHIFT -->
+                                <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-xl border-l-4 border-indigo-400">
+                                    <div class="text-3xl">🌙🦇</div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-700 text-sm">Night Shift: Moths</h4>
+                                        <p class="text-xs text-slate-500 italic">"White Color + Strong Scent"</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD C: GUIDE'S COMPASS (Philosophical) -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">Guide's Compass</h3>
+                        <p class="text-sm text-slate-500">The "Why" & The Montessori Philosophy.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                             <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                                <h4 class="font-bold text-blue-800 text-xs uppercase tracking-widest mb-2">The Cosmic Task</h4>
+                                <p class="text-slate-700 text-sm italic leading-relaxed">
+                                    "The flower is not just decoration. It is a tireless worker. Its task is to secure the future of the species. Without it, the story ends."
+                                </p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div class="bg-white border border-slate-100 p-3 rounded-lg shadow-sm">
+                                    <h5 class="font-bold text-slate-700 text-xs uppercase mb-1">The 2nd Plane Mind</h5>
+                                    <p class="text-xs text-slate-600">
+                                        The 6-12 child loves <strong>Hero Worship</strong>. We frame the flower as a clever protagonist who "tricks" the insect to achieve its goal.
+                                    </p>
+                                </div>
+                                <div class="bg-white border border-slate-100 p-3 rounded-lg shadow-sm">
+                                    <h5 class="font-bold text-slate-700 text-xs uppercase mb-1">Materialized Abstraction</h5>
+                                    <p class="text-xs text-slate-600">
+                                        We cannot see the biological urge to reproduce. We use the story of the <strong>Flower Market</strong> to make that abstract biological drive visible and understandable.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD D: PREP ROOM -->
+                <div class="lab-card group" onclick="toggleCard(this)">
+                    <div class="p-6 flex flex-col h-full">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-300 expand-icon text-xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-1 group-hover:text-amber-600 transition-colors">The Prep Room</h3>
+                        <p class="text-sm text-slate-500">Checklist for the perfect lesson.</p>
+
+                        <!-- Hidden Content -->
+                        <div class="card-content">
+                            <ul class="space-y-3 text-sm text-slate-700">
+                                <li class="flex items-center gap-3">
+                                    <input type="checkbox" class="accent-amber-500 w-4 h-4">
+                                    <span><strong>Black Paper:</strong> Essential for contrast (pollen is yellow/white).</span>
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <input type="checkbox" class="accent-amber-500 w-4 h-4">
+                                    <span><strong>White Pencil:</strong> To label directly on the black paper.</span>
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <input type="checkbox" class="accent-amber-500 w-4 h-4">
+                                    <span><strong>Specimen:</strong> Lily or Alstroemeria (Parts are large and distinct).</span>
+                                </li>
+                                <li class="flex items-center gap-3">
+                                    <input type="checkbox" class="accent-amber-500 w-4 h-4">
+                                    <span><strong>Chart O:</strong> Keep face down to start.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 4. FOOTER: RABBIT HOLES -->
+        <section class="explorer-only mt-16 border-t border-slate-200 pt-8 pb-12">
+            <h3 class="text-center text-slate-400 font-bold uppercase tracking-widest text-xs mb-8">Rabbit Holes for the Curious</h3>
+            <div class="flex flex-wrap justify-center gap-6">
+                <div class="bg-yellow-100 p-4 w-48 shadow-lg transform rotate-2 hover:rotate-0 transition-transform cursor-help">
+                    <h4 class="font-bold text-yellow-800 text-xs uppercase mb-1">Botany Fact</h4>
+                    <p class="handwritten text-sm text-yellow-900 leading-tight">The <strong>Poinsettia</strong> isn't a flower! The red parts are leaves (bracts). The flowers are the tiny yellow dots in the center.</p>
+                </div>
+                <div class="bg-green-100 p-4 w-48 shadow-lg transform -rotate-1 hover:rotate-0 transition-transform cursor-help">
+                    <h4 class="font-bold text-green-800 text-xs uppercase mb-1">Advanced</h4>
+                    <p class="handwritten text-sm text-green-900 leading-tight"><strong>Gamopetalous:</strong> When petals are fused together (like a Morning Glory). "Gamos" = Marriage.</p>
+                </div>
+            </div>
+            
+             <!-- Live Parking Lot -->
+            <div class="mt-8 max-w-xl mx-auto">
+                <textarea class="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none" rows="2" placeholder="Start typing your own rabbit holes here..."></textarea>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JS Logic -->
+    <script>
+        function toggleCard(card) {
+            // Toggle 'active' class
+            if (card.classList.contains('active')) {
+                card.classList.remove('active');
+            } else {
+                // Optional: Close others? For now, let's keep multiple open allowed
+                card.classList.add('active');
+            }
+        }
+
+        function toggleTriage() {
+            const body = document.body;
+            const btn = document.getElementById('triageBtn');
+            const span = btn.querySelector('span');
+            const icon = btn.querySelector('i');
+
+            body.classList.toggle('triage-active');
+
+            if (body.classList.contains('triage-active')) {
+                // Triage ON
+                btn.classList.remove('bg-slate-100', 'text-slate-600');
+                btn.classList.add('bg-rose-600', 'text-white', 'shadow-lg');
+                span.innerText = "Exit Triage";
+                icon.classList.remove('fa-heart-pulse');
+                icon.classList.add('fa-xmark');
+            } else {
+                // Triage OFF
+                btn.classList.add('bg-slate-100', 'text-slate-600');
+                btn.classList.remove('bg-rose-600', 'text-white', 'shadow-lg');
+                span.innerText = "Explorer Mode";
+                icon.classList.add('fa-heart-pulse');
+                icon.classList.remove('fa-xmark');
+            }
+        }
+    </script>
+</body>
+</html>
