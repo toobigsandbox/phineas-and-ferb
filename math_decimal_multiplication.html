@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decimal Multiplication: The Alchemist's Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* FONTS */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Outfit:wght@300;400;700;800&family=Reenie+Beanie&display=swap');
+
+        :root {
+            --bg-deep: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --indigo-glow: #6366f1;
+            --amber-glow: #f59e0b;
+            --emerald-glow: #10b981;
+            /* Montessori Colors */
+            --mont-green: #22c55e;
+            --mont-blue: #3b82f6;
+            --mont-red: #ef4444;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-deep);
+            color: #e2e8f0;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.05) 0%, transparent 40%);
+            min-height: 100vh;
+        }
+
+        .handwritten { font-family: 'Reenie Beanie', cursive; }
+        .mono { font-family: 'Space Grotesk', monospace; }
+
+        /* --- UI COMPONENTS --- */
+        
+        /* The Glass Card */
+        .alchemy-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            transition: all 0.4s ease;
+            overflow: hidden;
+        }
+
+        .alchemy-card:hover {
+            border-color: var(--indigo-glow);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* The Apparatus Modal */
+        .apparatus-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 200;
+            display: none;
+            overflow-y: auto;
+        }
+        .apparatus-modal.open { display: block; }
+
+        /* The Decimal Board Visuals */
+        .board-cell {
+            aspect-ratio: 1;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            color: rgba(0,0,0,0.5);
+            position: relative;
+        }
+        /* Montessori Hierarchy Colors */
+        .cell-green { background-color: #86efac; color: #14532d; } /* Unit/1000 */
+        .cell-blue { background-color: #93c5fd; color: #1e3a8a; } /* Ten/Tenth */
+        .cell-red { background-color: #fca5a5; color: #7f1d1d; } /* Hundred/Hundredth */
+        
+        .bead {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            display: inline-block;
+        }
+        .bead-cube {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            display: inline-block;
+        }
+
+        /* Logic Flow Lines */
+        .flow-line {
+            width: 2px;
+            background: linear-gradient(to bottom, var(--indigo-glow), transparent);
+            margin: 0 auto;
+        }
+
+        /* Equation Styling */
+        .equation-box {
+            font-family: 'Space Grotesk', monospace;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Sidebar Animation */
+        .ef-sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+            width: 320px;
+            background: #1e293b;
+            border-left: 1px solid #334155;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+        .ef-sidebar.open { transform: translateX(0); }
+
+        /* Guide Sim Mode Steps */
+        .sim-step {
+            display: none; 
+            animation: fadeIn 0.5s ease;
+        }
+        .sim-step.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Triage Mode */
+        body.triage-active {
+            background: #fff1f2;
+            color: #334155;
+        }
+        body.triage-active .alchemy-card {
+            background: white;
+            border: 1px solid #cbd5e1;
+            box-shadow: none;
+            color: #334155;
+        }
+        body.triage-active .explorer-only { display: none; }
+        body.triage-active .triage-visible { display: block; }
+        body.triage-active .apparatus-btn { display: none; }
+
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- EF SIDEBAR -->
+    <aside id="ef-panel" class="ef-sidebar p-6 flex flex-col h-full">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-brain"></i> Guide's Brain
+            </h2>
+            <button onclick="toggleEF()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-6 flex-grow">
+            <!-- Energy Meter -->
+            <div>
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Mental Bandwidth</h4>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="toggleTriage(false)" class="p-2 rounded bg-indigo-900/50 border border-indigo-500 text-indigo-200 text-xs font-bold hover:bg-indigo-900 transition-colors">
+                        🧙‍♂️ Alchemist
+                    </button>
+                    <button onclick="toggleTriage(true)" class="p-2 rounded bg-slate-800 border border-slate-600 text-slate-400 text-xs font-bold hover:bg-slate-700 transition-colors">
+                        🚑 Triage
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parking Lot -->
+            <div class="bg-black/20 p-4 rounded-xl border border-white/5">
+                <h4 class="text-xs font-bold text-amber-500 uppercase tracking-widest mb-2">Rabbit Holes</h4>
+                <textarea class="w-full bg-transparent text-sm text-slate-300 placeholder-slate-600 focus:outline-none resize-none h-32" placeholder="Write down distracting thoughts here to look up later..."></textarea>
+            </div>
+        </div>
+    </aside>
+
+    <!-- APPARATUS MODAL (The Material Lab) -->
+    <div id="apparatus-modal" class="apparatus-modal p-6 md:p-12">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex justify-between items-start mb-12">
+                <div>
+                    <h2 class="text-4xl font-bold text-white mb-2">The Apparatus</h2>
+                    <p class="text-indigo-300 font-mono">The Decimal Checkerboard & Color Hierarchy</p>
+                </div>
+                <button onclick="toggleApparatus()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full font-bold transition-colors">
+                    Close Lab <i class="fa-solid fa-xmark ml-2"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- 1. COLOR HIERARCHY -->
+                <div class="alchemy-card p-8">
+                    <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-palette text-emerald-400"></i> The Mirror Kingdom
+                    </h3>
+                    <p class="text-sm text-slate-300 mb-4">The Unit is the King. Everything reflects out from the center.</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Whole Numbers -->
+                        <div class="flex items-center gap-4 bg-white/5 p-3 rounded-xl">
+                            <div class="w-24 text-right text-xs text-slate-400 uppercase font-bold">Whole #</div>
+                            <div class="flex gap-2">
+                                <span class="bead bg-green-500" title="Unit"></span>
+                                <span class="bead bg-blue-500" title="Ten"></span>
+                                <span class="bead bg-red-500" title="Hundred"></span>
+                            </div>
+                            <div class="text-xs text-slate-300">"Colors Darken" (Spheres)</div>
+                        </div>
+
+                        <!-- Decimal Fractions -->
+                        <div class="flex items-center gap-4 bg-white/5 p-3 rounded-xl">
+                            <div class="w-24 text-right text-xs text-slate-400 uppercase font-bold">Decimal</div>
+                            <div class="flex gap-2">
+                                <span class="bead-cube bg-blue-300" title="Tenth"></span>
+                                <span class="bead-cube bg-red-300" title="Hundredth"></span>
+                                <span class="bead-cube bg-green-300" title="Thousandth"></span>
+                            </div>
+                            <div class="text-xs text-slate-300">"Colors Lighten" (Cubes/Disks)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. THE BOARD -->
+                <div class="alchemy-card p-8">
+                    <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-chess-board text-amber-400"></i> The Board
+                    </h3>
+                    <div class="flex justify-center mb-6 overflow-x-auto">
+                        <div class="grid grid-cols-7 gap-1 bg-slate-800 p-2 rounded-lg border border-slate-700 min-w-max">
+                            <!-- Left Side (Whole) -->
+                            <div class="board-cell cell-green opacity-50">1k</div>
+                            <div class="board-cell cell-red opacity-50">100</div>
+                            <div class="board-cell cell-blue opacity-50">10</div>
+                            
+                            <!-- THE UNIT (Center) -->
+                            <div class="board-cell cell-green border-2 border-white transform scale-110 z-10 shadow-lg text-black">1</div>
+                            
+                            <!-- Right Side (Decimal) -->
+                            <div class="board-cell cell-blue">0.1</div>
+                            <div class="board-cell cell-red">0.01</div>
+                            <div class="board-cell cell-green">0.001</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 italic text-center">
+                        "The colors guide the child. Blue always means 'Ten-ness', whether it's 10 or 1/10."
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAV -->
+    <nav class="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <a href="#" class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-500 transition-colors">
+                    <i class="fa-solid fa-calculator"></i>
+                </a>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-white">Decimal Multiplication</h1>
+                    <p class="text-xs text-indigo-300 uppercase tracking-wider">Lesson 5 • The "Impossible" Problem</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleApparatus()" class="apparatus-btn px-4 py-2 rounded-full bg-slate-800 text-slate-300 border border-slate-600 hover:bg-slate-700 hover:text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i> Apparatus
+                </button>
+                <button onclick="toggleEF()" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 border border-slate-700 hover:text-white transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-brain"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main class="max-w-5xl mx-auto mt-28 px-6 space-y-16">
+
+        <!-- 1. PRELIMINARY ACTIVITY (The Hook) -->
+        <section class="explorer-only relative">
+            <div class="absolute -top-10 -left-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
+            
+            <div class="alchemy-card p-8 md:p-12 relative overflow-hidden">
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    <div class="flex-1">
+                        <h2 class="text-4xl font-bold mb-4 text-white">
+                            0.2 <span class="text-indigo-400">×</span> 0.3
+                        </h2>
+                        <p class="text-lg text-slate-300 leading-relaxed italic border-l-4 border-indigo-500 pl-4 mb-4">
+                            "I have 2 tenths. I need to multiply it by 3 tenths. But... I don't think I can do that with my materials. I would have to <strong class="text-white">cut my cubes into pieces</strong>."
+                        </p>
+                    </div>
+                    <div class="w-full md:w-48 bg-black/30 p-6 rounded-xl border border-white/5 flex flex-col items-center justify-center text-center">
+                        <div class="text-5xl mb-4 opacity-50">🔪🧊</div>
+                        <p class="text-xs font-mono text-red-300">PHYSICAL LIMIT</p>
+                        <p class="text-[10px] text-slate-500 mt-1">"We can't cut the beads!"</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. INTERACTIVE GUIDE SIMULATION (The Heart of the Lesson) -->
+        <section class="explorer-only">
+            <div class="flex justify-between items-end mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-emerald-400"></i> The Guide's Simulation
+                </h3>
+                <div class="text-xs text-slate-500 font-mono">Follow the script & actions</div>
+            </div>
+
+            <!-- SIM CONTAINER -->
+            <div class="alchemy-card p-8 bg-slate-900 border border-indigo-500/20">
+                
+                <!-- PROGRESS BAR -->
+                <div class="w-full h-1 bg-slate-800 rounded-full mb-8 overflow-hidden">
+                    <div id="sim-progress" class="h-full bg-indigo-500 w-0 transition-all duration-500"></div>
+                </div>
+
+                <!-- STEP 1: DECOMPOSITION -->
+                <div id="step-1" class="sim-step active space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- ACTION -->
+                        <div class="bg-indigo-900/20 p-6 rounded-2xl border border-indigo-500/30">
+                            <h4 class="text-indigo-400 text-xs font-bold uppercase mb-2"><i class="fa-solid fa-hand-holding"></i> Action</h4>
+                            <p class="text-sm text-slate-300">"Move the decimal card to the right."</p>
+                            <div class="mt-4 p-4 bg-black/40 rounded-lg text-center font-mono text-white border border-white/5">
+                                0.6 → <span class="text-amber-400 animate-pulse">6</span>
+                            </div>
+                        </div>
+                        <!-- SCRIPT -->
+                        <div class="bg-slate-800/50 p-6 rounded-2xl border border-white/5 md:col-span-2">
+                            <h4 class="text-slate-400 text-xs font-bold uppercase mb-2"><i class="fa-solid fa-comment"></i> Guide's Script</h4>
+                            <p class="text-lg text-white font-serif italic">"If we multiply our multiplier by 10, we make it a whole number. But to keep the problem fair, we must divide our multiplicand by 10."</p>
+                            <div class="mt-4 flex gap-4">
+                                <span class="px-3 py-1 bg-emerald-900/50 text-emerald-400 text-xs rounded border border-emerald-500/30">Why?</span>
+                                <span class="text-xs text-slate-400">To allow us to use whole beads instead of cutting them.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button onclick="nextStep(2)" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2">
+                            Transform Problem <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: MULTIPLICATION (Interactive Counting) -->
+                <div id="step-2" class="sim-step space-y-6">
+                    <div class="flex flex-col items-center justify-center py-8 text-center">
+                        <h4 class="text-white text-xl font-bold mb-2">Multiplying 6 Thousandths (x6)</h4>
+                        <p class="text-slate-400 text-sm mb-6">"Count with the children. Do not pre-count!"</p>
+                        
+                        <!-- BEAD COUNTER -->
+                        <div class="bg-black/40 p-6 rounded-2xl border border-white/10 w-full max-w-md">
+                            <div id="bead-container" class="flex flex-wrap justify-center gap-2 mb-4 min-h-[40px]">
+                                <!-- Beads appear here -->
+                            </div>
+                            <div class="text-2xl font-mono text-green-400 mb-4"><span id="bead-count">0</span> / 6</div>
+                            <button onclick="addBead()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-colors active:scale-95 touch-manipulation">
+                                Click to Count Bead (One by One)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: EXCHANGE -->
+                <div id="step-3" class="sim-step space-y-6">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div>
+                             <h4 class="text-amber-400 text-xs font-bold uppercase mb-2">The Exchange</h4>
+                             <p class="text-white text-lg font-serif italic mb-4">"Let's follow our rule of 10. Ten thousandths can be exchanged for..."</p>
+                             <div class="p-4 bg-indigo-900/30 border border-indigo-500/30 rounded-xl text-sm text-slate-300">
+                                 Wait for the child to answer! Point to the Green beads and trace the line to the Red beads.
+                             </div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-2xl border border-white/5 text-center">
+                             <div class="flex justify-center items-center gap-4 mb-4">
+                                 <div class="grid grid-cols-5 gap-1">
+                                     <!-- 10 Green Beads -->
+                                     <span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span>
+                                     <span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span><span class="bead-cube bg-green-400"></span>
+                                 </div>
+                                 <i class="fa-solid fa-arrow-right text-slate-500"></i>
+                                 <span class="bead-cube bg-red-400 w-8 h-8 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.5)]"></span>
+                             </div>
+                             <p class="text-xs text-slate-400 uppercase tracking-widest">10 Thousandths → 1 Hundredth</p>
+                        </div>
+                     </div>
+                     <div class="flex justify-end gap-4">
+                         <button onclick="resetSim()" class="px-4 py-2 text-slate-400 hover:text-white transition-colors">Restart</button>
+                         <button class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg">Finish Lesson</button>
+                     </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 3. TEACHER TACTIC (Important Warning) -->
+        <section class="explorer-only">
+            <div class="alchemy-card p-6 border border-red-500/30 bg-red-900/10">
+                <div class="flex items-start gap-4">
+                    <div class="text-2xl text-red-400"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <h4 class="font-bold text-red-300 mb-2">Trainer's Warning: The "Pre-Counting" Trap</h4>
+                        <p class="text-sm text-slate-300 leading-relaxed mb-3">
+                            "In the video, I pre-counted the beads to save time. <strong>Do not do this.</strong>"
+                        </p>
+                        <p class="text-sm text-slate-300 italic">
+                            "Counting out the beads is where the child builds the memory of the quantity. If you prep it for them, you steal the learning moment."
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRIAGE VIEW (Hidden by default) -->
+        <section class="triage-visible hidden space-y-4">
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-indigo-600">
+                <h3 class="font-bold text-slate-800 text-lg mb-2">Lesson Snapshot</h3>
+                <ul class="space-y-2 text-sm text-slate-600">
+                    <li><strong>Goal:</strong> Multiply decimal fractions without physically cutting beads.</li>
+                    <li><strong>Key Logic:</strong> Multiply multiplier by 10/100 (make whole) → Divide multiplicand by same amount.</li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-20 py-8 text-center text-slate-600 text-xs font-bold uppercase tracking-widest">
+        Montessori Mathematics • Level II
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script>
+        // EF Logic
+        function toggleEF() { document.getElementById('ef-panel').classList.toggle('open'); }
+        function toggleApparatus() { document.getElementById('apparatus-modal').classList.toggle('open'); }
+        function toggleTriage(enable) {
+            if(enable) document.body.classList.add('triage-active');
+            else document.body.classList.remove('triage-active');
+        }
+
+        // Sim Logic
+        let currentBeads = 0;
+        
+        function nextStep(stepNum) {
+            document.querySelectorAll('.sim-step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${stepNum}`).classList.add('active');
+            
+            // Progress Bar Update
+            const progress = (stepNum - 1) * 50;
+            document.getElementById('sim-progress').style.width = `${progress}%`;
+        }
+
+        function addBead() {
+            if (currentBeads < 6) {
+                currentBeads++;
+                document.getElementById('bead-count').innerText = currentBeads;
+                
+                // Add visual bead
+                const bead = document.createElement('div');
+                bead.className = 'bead-cube bg-green-400 animate-[bounce_0.3s_ease]';
+                document.getElementById('bead-container').appendChild(bead);
+
+                if (currentBeads === 6) {
+                    setTimeout(() => {
+                        nextStep(3);
+                        document.getElementById('sim-progress').style.width = '100%';
+                    }, 500);
+                }
+            }
+        }
+
+        function resetSim() {
+            currentBeads = 0;
+            document.getElementById('bead-count').innerText = '0';
+            document.getElementById('bead-container').innerHTML = '';
+            nextStep(1);
+        }
+    </script>
+</body>
+</html>
